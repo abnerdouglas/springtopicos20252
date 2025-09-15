@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import br.gov.sp.fatec.springtopicos20252.entity.Trabalho;
 
 public interface TrabalhoRepository extends JpaRepository<Trabalho, Long>{
-
+    
     public List<Trabalho> findByTituloContainsAndUsuarioNomeContains(String titulo, String nomeUsuario);
 
     @Query("select t from Trabalho t join t.usuario u where t.titulo like %?1% and u.nome like %?2%")
