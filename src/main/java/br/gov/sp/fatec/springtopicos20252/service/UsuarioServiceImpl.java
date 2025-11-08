@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,13 +24,18 @@ public class UsuarioServiceImpl implements UsuarioService{
 
     private AutorizacaoRepository autRepo;
 
-    public UsuarioServiceImpl(UsuarioRepository usuarioRepo, AutorizacaoRepository autRepo) {
+    private PasswordEncoder encoder;
+
+    public UsuarioServiceImpl(UsuarioRepository usuarioRepo, 
+            AutorizacaoRepository autRepo, PasswordEncoder encoder) {
         this.repo = usuarioRepo;
         this.autRepo = autRepo;
+        this.encoder = encoder;
     }
 
     @Override
     @Transactional
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public Usuario novo(Usuario usuario) {
         if(usuario == null ||
                 usuario.getNome() == null ||
@@ -38,6 +45,7 @@ public class UsuarioServiceImpl implements UsuarioService{
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Faltam informações!");
         }
         usuario.setId(null);
+        usuario.setSenha(encoder.encode(usuario.getSenha()));
         Set<Autorizacao> autorizacoes = new HashSet<Autorizacao>();
         for(Autorizacao aut: usuario.getAutorizacoes()) {
             autorizacoes.add(buscarAutorizacaoPorId(aut.getId()));
@@ -67,6 +75,14 @@ public class UsuarioServiceImpl implements UsuarioService{
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não existe!");
         }
         return usuarioOp.get();
+    }
+
+    @Override
+    @PreAuthorize("isAuthenticated()")
+    public Usuario buscarPorNomeESenha(String nome, String Senha) {
+        return repo.buscarPorNomeESenha(nome, Senha).orElseThrow(() -> {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        });
     }
     
 }
